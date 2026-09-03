@@ -88,7 +88,56 @@ app.get('/api/download-zip', async (req, res) => {
   }
 });
 
-// 5. API: VLC Stream endpoint with HTTP 206 Partial Content (Range Request) Demonstration
+// 5. API: Direct Raw File Serving & One-Liner Installer
+app.get('/install.sh', (req, res) => {
+  const host = req.get('host') || 'localhost:3000';
+  const proto = req.headers['x-forwarded-proto'] || (req.protocol === 'https' ? 'https' : 'http');
+  const base = `${proto}://${host}`;
+
+  const script = `#!/data/data/com.termux/files/usr/bin/bash
+set -e
+echo "================================================="
+echo "   نصب‌کننده خودکار سرور رسانه Android TV & Termux"
+echo "================================================="
+
+echo "[1/4] بررسی و نصب پکیج‌های پایتون و ابزارها..."
+pkg update -y && pkg install -y python curl unzip
+
+echo "[2/4] ایجاد پوشه کاری و تنظیم مجوزهای حافظه..."
+termux-setup-storage || true
+mkdir -p ~/android-tv-vlc-server
+cd ~/android-tv-vlc-server
+
+echo "[3/4] دانلود کدهای سرور..."
+curl -sL "${base}/api/download-zip" -o server.zip
+unzip -o server.zip
+rm -f server.zip
+chmod +x scripts/*.sh 2>/dev/null || true
+
+echo "[4/4] راه‌اندازی سرور پایتون..."
+echo "سرور با موفقیت راه‌اندازی شد!"
+python3 server/main.py
+`;
+
+  res.setHeader('Content-Type', 'text/plain; charset=utf-8');
+  res.send(script);
+});
+
+app.get(['/raw/*', '/server/main.py'], (req, res) => {
+  let reqPath = req.params[0] || 'server/main.py';
+  if (req.path === '/server/main.py') {
+    reqPath = 'server/main.py';
+  }
+  const file = PROJECT_FILES.find((f) => f.path === reqPath || f.name === reqPath || f.path.endsWith(reqPath));
+  if (file) {
+    res.setHeader('Content-Type', 'text/plain; charset=utf-8');
+    res.send(file.content);
+  } else {
+    res.status(404).send('File not found in project template');
+  }
+});
+
+// 6. API: VLC Stream endpoint with HTTP 206 Partial Content (Range Request) Demonstration
 app.get('/api/stream/demo-video', (req, res) => {
   // Generates a mock MP4 or serves sample byte stream for VLC testing
   // We provide a realistic Range Request handler

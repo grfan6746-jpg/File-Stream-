@@ -20,10 +20,11 @@ interface ProjectViewerProps {
 export const ProjectViewer: React.FC<ProjectViewerProps> = ({ onDownloadZip }) => {
   const [selectedFile, setSelectedFile] = useState<ProjectFile>(PROJECT_FILES[0]);
   const [copied, setCopied] = useState(false);
-  const [copiedCommand, setCopiedCommand] = useState(false);
+  const [copiedCommand, setCopiedCommand] = useState<string | null>(null);
 
-  const termuxCommand =
-    'pkg update -y && pkg install -y python git curl && termux-setup-storage';
+  const origin = typeof window !== 'undefined' ? window.location.origin : '';
+  const oneLinerCommand = `curl -sL ${origin}/install.sh | bash`;
+  const stepByStepCommand = `pkg install -y python curl unzip && termux-setup-storage && curl -sL ${origin}/api/download-zip -o server.zip && unzip -o server.zip && python3 server/main.py`;
 
   const handleCopyCode = () => {
     navigator.clipboard.writeText(selectedFile.content);
@@ -31,10 +32,10 @@ export const ProjectViewer: React.FC<ProjectViewerProps> = ({ onDownloadZip }) =
     setTimeout(() => setCopied(false), 2000);
   };
 
-  const handleCopyCommand = () => {
-    navigator.clipboard.writeText(termuxCommand);
-    setCopiedCommand(true);
-    setTimeout(() => setCopiedCommand(false), 2000);
+  const handleCopySpecific = (cmd: string, key: string) => {
+    navigator.clipboard.writeText(cmd);
+    setCopiedCommand(key);
+    setTimeout(() => setCopiedCommand(null), 2000);
   };
 
   const handleDownloadSingleFile = () => {
@@ -49,6 +50,17 @@ export const ProjectViewer: React.FC<ProjectViewerProps> = ({ onDownloadZip }) =
 
   return (
     <div className="space-y-4">
+      {/* Troubleshooting Warning & Quick Fix */}
+      <div className="p-4 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-amber-200 text-xs sm:text-sm space-y-2">
+        <div className="flex items-center gap-2 font-bold text-amber-300">
+          <span>⚠️</span>
+          <span>راهنمای رفع خطای: "python3: can't open file 'server/main.py': No such file or directory"</span>
+        </div>
+        <p className="text-slate-300 leading-relaxed text-xs">
+          ترموکس به صورت پیش‌فرض خالی است و هنوز فایل‌های سرور روی حافظه تلویزیون دانلود یا کپی نشده‌اند. برای رفع این موضوع و اجرای فوری سرور، یکی از دستورات زیر را در محیط ترموکس کپی و اجرا کنید:
+        </p>
+      </div>
+
       {/* Quick Terminal Command Banner */}
       <div className="p-4 rounded-2xl bg-gradient-to-r from-slate-900 to-slate-950 border border-slate-800 flex flex-col md:flex-row md:items-center md:justify-between gap-3 shadow-md">
         <div className="flex items-center gap-3">
@@ -56,28 +68,29 @@ export const ProjectViewer: React.FC<ProjectViewerProps> = ({ onDownloadZip }) =
             <Terminal className="w-5 h-5" />
           </div>
           <div>
-            <h3 className="text-sm font-bold text-slate-100">
-              دستور راه‌اندازی سریع اولیه در ترموکس (Termux Quick Start)
+            <h3 className="text-sm font-bold text-slate-100 flex items-center gap-2">
+              <span>دستور تک‌خطی خودکار جهت دانلود و اجرای فوری در ترموکس</span>
+              <span className="text-[10px] bg-sky-500/20 text-sky-300 border border-sky-500/30 px-2 py-0.5 rounded-full font-normal">توصیه شده</span>
             </h3>
-            <p className="text-xs text-slate-400 font-mono mt-0.5 dir-ltr text-right">
-              {termuxCommand}
+            <p className="text-xs text-slate-300 font-mono mt-1 dir-ltr text-right select-all bg-slate-950/80 px-2.5 py-1 rounded border border-slate-800">
+              {oneLinerCommand}
             </p>
           </div>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-shrink-0">
           <button
-            onClick={handleCopyCommand}
-            className="px-3.5 py-1.5 rounded-lg text-xs font-semibold bg-slate-800 hover:bg-slate-700 text-sky-400 border border-slate-700 transition flex items-center gap-1.5 cursor-pointer"
+            onClick={() => handleCopySpecific(oneLinerCommand, 'oneliner')}
+            className="px-3.5 py-1.5 rounded-lg text-xs font-semibold bg-sky-600 hover:bg-sky-500 text-white transition flex items-center gap-1.5 cursor-pointer shadow-sm"
           >
-            {copiedCommand ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
-            {copiedCommand ? 'کپی شد!' : 'کپی دستور'}
+            {copiedCommand === 'oneliner' ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
+            {copiedCommand === 'oneliner' ? 'کپی شد!' : 'کپی دستور خودکار'}
           </button>
           <button
             onClick={onDownloadZip}
-            className="px-3.5 py-1.5 rounded-lg text-xs font-semibold bg-sky-600 hover:bg-sky-500 text-white transition flex items-center gap-1.5 cursor-pointer shadow-sm"
+            className="px-3.5 py-1.5 rounded-lg text-xs font-semibold bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 transition flex items-center gap-1.5 cursor-pointer"
           >
-            <Download className="w-3.5 h-3.5" />
+            <Download className="w-3.5 h-3.5 text-sky-400" />
             دانلود کل پروژه (ZIP)
           </button>
         </div>
