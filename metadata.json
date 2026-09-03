@@ -1,0 +1,6 @@
+{
+  "name": "Android TV Media Server for Termux",
+  "description": "Local LAN media streaming server for Android TV and Termux to stream internal storage and USB drives directly to VLC on mobile devices.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
